@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "npm run pretest",
+            "type": "shell",
+            "command": "npm run pretest",
+            "problemMatcher": ["$tsc"]
+        }
+    ]
+}
