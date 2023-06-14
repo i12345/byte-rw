@@ -48,12 +48,12 @@ export class DataViewByteWriterDynamic extends DataViewByteWriter {
     combineBuckets() {
         this.buckets[this.buckets.length - 1].bytesWritten = this._byteOffset
 
-        const offsets = new Array<number>(this.buckets.length)
+        const offsets = new Array<number>(this.buckets.length + 1)
         offsets[0] = 0
-        for (let i = 1; i < offsets.length - 1; i++)
+        for (let i = 1; i < offsets.length; i++)
             offsets[i] = offsets[i - 1] + this.buckets[i - 1].bytesWritten
         
-        const dst = new ArrayBuffer(offsets[this.buckets.length - 1])
+        const dst = new ArrayBuffer(offsets.pop()!)
         for (let i = 0; i < offsets.length; i++) {
             const bucket = this.buckets[i]
 
