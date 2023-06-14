@@ -1,4 +1,6 @@
 export * from './reader.js'
+export * from './reader-chunked.js'
 export * from './reader-async.js'
+export * from './reader-async-chunked.js'
 export * from './writer.js'
-export * from './writer-dynamic.js'
+export * from './writer-chunked.js'

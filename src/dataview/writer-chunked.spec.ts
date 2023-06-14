@@ -1,5 +1,5 @@
 import { describe, it } from "mocha";
-import { DataViewByteWriterDynamic } from "./writer-dynamic.js"
+import { DataViewByteWriterChunked } from "./writer-chunked.js"
 import { assert } from "chai";
 import { DataViewByteReader } from "./reader.js";
 
@@ -11,9 +11,7 @@ describe("DataViewByteReader", () => {
         for (let i = 0; i < data.length; i++)
             data[i] = (i * 29) & 0xFFFF
 
-        // const buffer = new ArrayBuffer(4 * data.length)
-        // const float32 = new Float32Array(buffer)
-        const writer = new DataViewByteWriterDynamic(littleEndian, 4096)
+        const writer = new DataViewByteWriterChunked(littleEndian, 4096)
         for (let i = 0; i < data.length; i++)
             writer.setUint16(data[i])
         

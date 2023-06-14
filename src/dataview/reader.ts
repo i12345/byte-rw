@@ -140,5 +140,7 @@ export class DataViewByteReader implements ByteReader {
                 byteLength: bytes,
             }
         )
+
+        this._byteOffset += bytes
     }
 }

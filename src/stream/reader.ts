@@ -1,36 +1,49 @@
-import { DataViewByteReaderAsync } from "../dataview/reader-async.js"
+import { DataViewChunk } from "../dataview/dataview-chunk.js"
+import { DataViewByteReaderAsyncChunked } from "../dataview/index.js"
+import { copy } from "../utils/copy.js"
 
-export class StreamByteReader extends DataViewByteReaderAsync {
+export class StreamByteReader extends DataViewByteReaderAsyncChunked {
     private readonly reader
+    private readonly isByob: boolean
 
     constructor(
         public readonly stream: ReadableStream,
         littleEndian = true,
-        public readonly defaultBufferSize = 4096
+        public readonly minChunkSize = 4096
     ) {
-        super(new DataView(new ArrayBuffer(defaultBufferSize)), littleEndian)
-        this.reader = stream.getReader({ mode: "byob" })
+        super(littleEndian, minChunkSize)
+        try {
+            this.reader = stream.getReader({ mode: "byob" })
+            this.isByob = true
+        }
+        catch {
+            this.reader = stream.getReader()
+            this.isByob = false
+        }
     }
 
-    protected async ensureAvailable(bytes: number): Promise<void> {
-        const result = await this.reader.read(this._dataview)
-        if (result.done) {
-            if (bytes > 0)
-                throw new Error("end of stream reached")
-        }
+    protected async fillChunk(chunk: DataViewChunk, minReadLength: number): Promise<void> {
+        const view = this.isByob ? new DataView(chunk.buffer, chunk.bytesWritten, minReadLength) : undefined!
+        const read = await this.reader.read(view)
+        
+        if (read.done)
+            throw new Error("end of stream")
+        
+        if (this.isByob)
+            chunk.bytesWritten += view.byteLength
         else {
-            result.value?.byteLength
+            const readView = read.value as ArrayBufferView
 
-            console.log("this._dataview.byteOffset")
-            console.log(this._dataview.byteOffset)
-            console.log("this._dataview.byteLength")
-            console.log(this._dataview.byteLength)
-            console.log("result.value.byteOffset")
-            console.log(result.value.byteOffset)
-            console.log("result.value.byteLength")
-            console.log(result.value.byteLength)
-            
-            debugger
+            copy(
+                readView,
+                {
+                    buffer: chunk.buffer,
+                    byteOffset: chunk.bytesWritten,
+                    byteLength: readView.byteLength
+                }
+            )
+
+            chunk.bytesWritten += readView.byteLength
         }
     }
 }

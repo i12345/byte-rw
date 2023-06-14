@@ -108,5 +108,7 @@ export class DataViewByteWriter implements ByteWriter {
                 byteLength: bytes,
             }
         )
+
+        this._byteOffset += bytes
     }
 }
