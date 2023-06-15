@@ -1,7 +1,7 @@
 {
-  "name": "dataview-stream",
+  "name": "byte-rw",
   "version": "1.0.0",
-  "description": "DataView + Streams (javascript)",
+  "description": "Byte reader/writer for buffers and streams in typescript/javascript",
   "types": "dist/types/index.d.ts",
   "main": "dist/index.js",
   "type": "module",
@@ -20,7 +20,11 @@
     "test": "mocha -p src/tsconfig.json src/**/*.spec.ts"
   },
   "keywords": [
-    "json"
+    "byte",
+    "bytes",
+    "ArrayBuffer",
+    "DataView",
+    "streams"
   ],
   "author": "Isaac Valdez",
   "license": "MIT",
