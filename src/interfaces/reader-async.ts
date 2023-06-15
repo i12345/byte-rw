@@ -1,5 +1,10 @@
 export interface ByteReaderAsync {
     /**
+     * Whether all underlying data has been read or not
+     */
+    isComplete(): Promise<boolean>
+
+    /**
      * If false, a big-endian value should be read.
      * 
      * @default true
@@ -47,9 +52,18 @@ export interface ByteReaderAsync {
     getUint32(): Promise<number>
 
     /**
+     * Attempts to read into the given {@link ArrayBufferView}.
+     *
+     * @param view the view to read into
+     * @returns the number of bytes that were actually read
+     */
+    tryGetBytes(view: ArrayBufferView): Promise<number>
+
+    /**
      * Reads into the given {@link ArrayBufferView}.
      *
-     * @param buffer the buffer to read into
+     * @param view the view to read into
+     * @throws error if the number of bytes requested could not be read
      */
-    getBytes(buffer: ArrayBufferView): Promise<void>
+    getBytes(view: ArrayBufferView): void
 }

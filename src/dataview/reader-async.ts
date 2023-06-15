@@ -3,6 +3,7 @@ import { copy } from "../utils/copy.js"
 
 export class DataViewByteReaderAsync implements ByteReaderAsync {
     protected _dataview: DataView
+    protected _isComplete: boolean = false
 
     protected _byteOffset = 0
     
@@ -18,16 +19,44 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
         this._dataview = dataview
     }
 
+    async isComplete(): Promise<boolean> {
+        return this._isComplete ||= await this.updateIsComplete()
+    }
+
     constructor(
         dataview: DataView,
         public littleEndian = true
-    ) { 
+    ) {
         this._dataview = dataview
     }
 
-    protected async ensureAvailable(bytes: number): Promise<void> {
+    protected async updateIsComplete(): Promise<boolean> {
+        return (await this.tryEnsureAvailable(1)) > 0
+    }
+
+    /**
+     * Attempts to ensure that a specified number of bytes are available in the
+     * current chunk.
+     * 
+     * @param bytes the number of bytes to request in the current chunk
+     * @returns the number of bytes at least made available in the current
+     * chunk, up to the requested number of bytes
+     */
+    protected async tryEnsureAvailable(bytes: number): Promise<number> {
+        if (this._isComplete)
+            return 0
+
         if (this._bytesRemaining < bytes)
-            throw new Error(`${this._bytesRemaining} bytes left; ${bytes} bytes needed`)
+            return this._bytesRemaining
+        else
+            return bytes
+    }
+
+    protected async ensureAvailable(bytes: number): Promise<void> {
+        const available = await this.tryEnsureAvailable(bytes)
+
+        if (available !== bytes)
+            throw new Error(`Not all bytes could be available (${bytes} bytes request, ${available} bytes available)`)
     }
 
     /**
@@ -118,27 +147,35 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
         return value
     }
 
-    async getBytes(buffer: ArrayBufferView): Promise<void> {
-        const bytes = buffer.byteLength
-        await this.ensureAvailable(bytes)
+    async tryGetBytes(view: ArrayBufferView): Promise<number> {
+        const bytes = view.byteLength
+        const read = await this.tryEnsureAvailable(bytes)
 
-        const dst = buffer.buffer
+        const dst = view.buffer
         const src = this._dataview.buffer
     
-        const dstOffset = buffer.byteOffset
+        const dstOffset = view.byteOffset
         const srcOffset = this._dataview.byteOffset + this._byteOffset
 
         copy(
             {
                 buffer: src,
                 byteOffset: srcOffset,
-                byteLength: bytes,
+                byteLength: read,
             },
             {
                 buffer: dst,
                 byteOffset: dstOffset,
-                byteLength: bytes,
+                byteLength: read,
             }
         )
+
+        return read
+    }
+
+    async getBytes(view: ArrayBufferView): Promise<void> {
+        const read = await this.tryGetBytes(view)
+        if (read !== view.byteLength)
+            throw new Error(`Not all bytes could be read (${view.byteLength} bytes request, ${read} bytes read)`)
     }
 }

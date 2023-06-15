@@ -1,7 +1,7 @@
-import { ByteWriter } from "../interfaces/writer.js";
+import { ByteWriterAsync } from "../index.js";
 import { copy } from "../utils/copy.js";
 
-export class DataViewByteWriter implements ByteWriter {
+export class DataViewByteWriterAsync implements ByteWriterAsync {
     protected _dataview: DataView
     protected _isComplete: boolean = false
 
@@ -19,8 +19,8 @@ export class DataViewByteWriter implements ByteWriter {
         this._dataview = dataview
     }
 
-    isComplete(): boolean {
-        return this._isComplete ||= this.updateIsComplete()
+    async isComplete(): Promise<boolean> {
+        return this._isComplete ||= await this.updateIsComplete()
     }
 
     constructor(
@@ -30,11 +30,11 @@ export class DataViewByteWriter implements ByteWriter {
         this._dataview = dataview
     }
 
-    protected updateIsComplete(): boolean {
-        return this.tryEnsureAvailable(1) > 0
+    protected async updateIsComplete(): Promise<boolean> {
+        return (await this.tryEnsureAvailable(1)) > 0
     }
 
-    complete(): void {
+    async complete(): Promise<void> {
         this._isComplete = true
     }
 
@@ -47,7 +47,7 @@ export class DataViewByteWriter implements ByteWriter {
      * @returns the number of bytes at least made available in the current
      * dataview, up to the requested number of bytes
      */
-    protected tryEnsureAvailable(bytes: number): number {
+    protected async tryEnsureAvailable(bytes: number): Promise<number> {
         if (this._isComplete)
             return 0
         
@@ -57,72 +57,72 @@ export class DataViewByteWriter implements ByteWriter {
             return bytes
     }
 
-    protected ensureAvailable(bytes: number): void {
-        const available = this.tryEnsureAvailable(bytes)
+    protected async ensureAvailable(bytes: number): Promise<void> {
+        const read = await this.tryEnsureAvailable(bytes)
 
-        if (available !== bytes)
-            throw new Error(`Not all bytes could be available (${bytes} bytes requested, ${available} bytes available)`)
+        if (read !== bytes)
+            throw new Error(`Not all bytes could be available (${bytes} bytes requested, ${read} bytes available)`)
     }
 
-    setFloat32(value: number): void {
+    async setFloat32(value: number): Promise<void> {
         const bytes = 4
-        this.ensureAvailable(bytes)
+        await this.ensureAvailable(bytes)
         this._dataview.setFloat32(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    setFloat64(value: number): void {
+    async setFloat64(value: number): Promise<void> {
         const bytes = 8
-        this.ensureAvailable(bytes)
+        await this.ensureAvailable(bytes)
         this._dataview.setFloat64(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    setInt8(value: number): void {
+    async setInt8(value: number): Promise<void> {
         const bytes = 1
-        this.ensureAvailable(bytes)
+        await this.ensureAvailable(bytes)
         this._dataview.setInt8(this._byteOffset, value)
         this._byteOffset += bytes
     }
 
-    setInt16(value: number): void {
+    async setInt16(value: number): Promise<void> {
         const bytes = 2
-        this.ensureAvailable(bytes)
+        await this.ensureAvailable(bytes)
         this._dataview.setInt16(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    setInt32(value: number): void {
+    async setInt32(value: number): Promise<void> {
         const bytes = 4
-        this.ensureAvailable(bytes)
+        await this.ensureAvailable(bytes)
         this._dataview.setInt32(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    setUint8(value: number): void {
+    async setUint8(value: number): Promise<void> {
         const bytes = 1
-        this.ensureAvailable(bytes)
+        await this.ensureAvailable(bytes)
         this._dataview.setUint8(this._byteOffset, value)
         this._byteOffset += bytes
     }
 
-    setUint16(value: number): void {
+    async setUint16(value: number): Promise<void> {
         const bytes = 2
-        this.ensureAvailable(bytes)
+        await this.ensureAvailable(bytes)
         this._dataview.setUint16(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    setUint32(value: number): void {
+    async setUint32(value: number): Promise<void> {
         const bytes = 4
-        this.ensureAvailable(bytes)
+        await this.ensureAvailable(bytes)
         this._dataview.setUint32(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    trySetBytes(view: ArrayBufferView): number {
+    async trySetBytes(view: ArrayBufferView): Promise<number> {
         const bytes = view.byteLength
-        const write = this.tryEnsureAvailable(bytes)
+        const write = await this.tryEnsureAvailable(bytes)
 
         const dst = this._dataview.buffer
         const src = view.buffer
@@ -147,8 +147,8 @@ export class DataViewByteWriter implements ByteWriter {
         return write
     }
 
-    setBytes(view: ArrayBufferView): void {
-        const written = this.trySetBytes(view)
+    async setBytes(view: ArrayBufferView): Promise<void> {
+        const written = await this.trySetBytes(view)
         if (written !== view.byteLength)
             throw new Error(`Not all bytes could be written (${view.byteLength} bytes requested, ${written} bytes written)`)
     }

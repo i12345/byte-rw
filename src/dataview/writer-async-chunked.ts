@@ -1,7 +1,7 @@
 import { DataViewChunkedWorker } from "./dataview-chunk.js";
-import { DataViewByteWriter } from "./writer.js";
+import { DataViewByteWriterAsync } from "./writer-async.js";
 
-export abstract class DataViewByteWriterChunked extends DataViewByteWriter implements DataViewChunkedWorker {
+export abstract class DataViewByteWriterAsyncChunked extends DataViewByteWriterAsync implements DataViewChunkedWorker {
     constructor(
         littleEndian?: boolean,
         public defaultChunkSize = 4096
@@ -9,34 +9,28 @@ export abstract class DataViewByteWriterChunked extends DataViewByteWriter imple
         super(new DataView(new ArrayBuffer(defaultChunkSize)), littleEndian)
     }
 
-    complete(): void {
-        if (this._isComplete)
-            return
-
+    async complete(): Promise<void> {
         const toSave = this._byteOffset
-        const saved = this.save()
+        const saved = await this.save()
         if (saved != toSave)
             throw new Error("not all queued bytes could be saved")
 
-        this._dataview = new DataView(new ArrayBuffer(0))
-        this._byteOffset = 0
-        
-        super.complete()
+        await super.complete()
     }
 
     /**
      * Saves the current chunk ({@link dataview}) and returns the number
      * of bytes that were saved
      */
-    protected abstract save(): number
+    protected abstract save(): Promise<number>
 
-    protected tryEnsureAvailable(bytes: number): number {
+    protected async tryEnsureAvailable(bytes: number): Promise<number> {
         if (this._isComplete)
             return 0
         
         if (this._bytesRemaining < bytes) {
-            const saved = this.save()
-            if (saved !== this._byteOffset) {
+            const saved = await this.save()
+            if (saved !== this._dataview.byteLength) {
                 this._isComplete = true
                 return 0
             }

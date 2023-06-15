@@ -3,6 +3,7 @@ import { copy } from "../utils/copy.js"
 
 export class DataViewByteReader implements ByteReader {
     protected _dataview: DataView
+    protected _isComplete: boolean = false
 
     protected _byteOffset = 0
     
@@ -18,6 +19,10 @@ export class DataViewByteReader implements ByteReader {
         this._dataview = dataview
     }
 
+    isComplete(): boolean {
+        return this._isComplete ||= this.updateIsComplete()
+    }
+
     constructor(
         dataview: DataView,
         public littleEndian = true
@@ -25,9 +30,31 @@ export class DataViewByteReader implements ByteReader {
         this._dataview = dataview
     }
 
-    protected ensureAvailable(bytes: number) {
+    protected updateIsComplete(): boolean {
+        return this.tryEnsureAvailable(1) > 0
+    }
+
+    /**
+     * Attempts to ensure that a specified number of bytes are available in the
+     * current dataview.
+     * 
+     * @param bytes the number of bytes to request available in the current
+     * dataview
+     * @returns the number of bytes at least made available in the current
+     * dataview, up to the requested number of bytes
+     */
+    protected tryEnsureAvailable(bytes: number): number {
         if (this._bytesRemaining < bytes)
-            throw new Error(`${this._bytesRemaining} bytes left; ${bytes} bytes needed`)
+            return this._bytesRemaining
+        else
+            return bytes
+    }
+
+    protected ensureAvailable(bytes: number): void {
+        const available = this.tryEnsureAvailable(bytes)
+
+        if (available !== bytes)
+            throw new Error(`Not all bytes could be available (${bytes} bytes requested, ${available} bytes available)`)
     }
 
     /**
@@ -118,29 +145,36 @@ export class DataViewByteReader implements ByteReader {
         return value
     }
 
-    getBytes(buffer: ArrayBufferView): void {
-        const bytes = buffer.byteLength
-        this.ensureAvailable(bytes)
+    tryGetBytes(view: ArrayBufferView): number {
+        const bytes = view.byteLength
+        const read = this.tryEnsureAvailable(bytes)
 
-        const dst = buffer.buffer
+        const dst = view.buffer
         const src = this._dataview.buffer
     
-        const dstOffset = buffer.byteOffset
+        const dstOffset = view.byteOffset
         const srcOffset = this._dataview.byteOffset + this._byteOffset
 
         copy(
             {
                 buffer: src,
                 byteOffset: srcOffset,
-                byteLength: bytes,
+                byteLength: read,
             },
             {
                 buffer: dst,
                 byteOffset: dstOffset,
-                byteLength: bytes,
+                byteLength: read,
             }
         )
 
-        this._byteOffset += bytes
+        this._byteOffset += read
+        return read
+    }
+
+    getBytes(view: ArrayBufferView): void {
+        const read = this.tryGetBytes(view)
+        if (read !== view.byteLength)
+            throw new Error(`Not all bytes could be read (${view.byteLength} bytes request, ${read} bytes read)`)
     }
 }

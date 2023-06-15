@@ -5,7 +5,16 @@
             "label": "npm run pretest",
             "type": "shell",
             "command": "npm run pretest",
-            "problemMatcher": ["$tsc"]
+            "problemMatcher": [
+                "$tsc"
+            ]
+        },
+        {
+            "type": "npm",
+            "script": "pretest",
+            "problemMatcher": ["$tsc"],
+            "label": "npm: pretest",
+            "detail": "npm run build:debug"
         }
     ]
 }

@@ -9,9 +9,9 @@ export class StreamByteReader extends DataViewByteReaderAsyncChunked {
     constructor(
         public readonly stream: ReadableStream,
         littleEndian = true,
-        public readonly minChunkSize = 4096
+        defaultChunkSize = 4096
     ) {
-        super(littleEndian, minChunkSize)
+        super(littleEndian, defaultChunkSize)
         try {
             this.reader = stream.getReader({ mode: "byob" })
             this.isByob = true
@@ -22,28 +22,68 @@ export class StreamByteReader extends DataViewByteReaderAsyncChunked {
         }
     }
 
-    protected async fillChunk(chunk: DataViewChunk, minReadLength: number): Promise<void> {
-        const view = this.isByob ? new DataView(chunk.buffer, chunk.bytesWritten, minReadLength) : undefined!
-        const read = await this.reader.read(view)
-        
-        if (read.done)
-            throw new Error("end of stream")
-        
-        if (this.isByob)
-            chunk.bytesWritten += view.byteLength
-        else {
+    protected async fill(minReadLength: number): Promise<number> {
+        if (minReadLength === 0)
+            return 0
+
+        let chunk = this.currentChunk
+        let i_chunk = 0
+        while (chunk.view.byteLength - chunk.bytesWritten === 0)
+            chunk = this.pendingChunks[i_chunk++]
+
+        let filled = 0
+        while (minReadLength > 0) {
+            const availableLength = chunk.view.byteLength - chunk.bytesWritten
+            const toRead = Math.min(availableLength, minReadLength)
+            const view = this.isByob ? new DataView(
+                chunk.view.buffer,
+                chunk.view.byteOffset + chunk.bytesWritten,
+                toRead
+            ) : undefined!
+            const read = await this.reader.read(view)
+
+            if (read.done) {
+                this._isComplete = true
+                break
+            }
+
             const readView = read.value as ArrayBufferView
+            filled += readView.byteLength
 
-            copy(
-                readView,
-                {
-                    buffer: chunk.buffer,
-                    byteOffset: chunk.bytesWritten,
-                    byteLength: readView.byteLength
-                }
-            )
+            const toCopy = Math.min(availableLength, readView.byteLength)
+            if (!this.isByob) {
+                copy(
+                    {
+                        buffer: readView.buffer,
+                        byteOffset: readView.byteOffset,
+                        byteLength: toCopy
+                    },
+                    {
+                        buffer: chunk.view.buffer,
+                        byteOffset: chunk.view.byteOffset + chunk.bytesWritten,
+                        byteLength: toCopy
+                    }
+                )
+            }
+            chunk.bytesWritten += toCopy
 
-            chunk.bytesWritten += readView.byteLength
+            const toSave = readView.byteLength - toCopy
+            if (toSave > 0) {
+                console.assert(!this.isByob)
+
+                this.pendChunk({
+                    view: {
+                        buffer: readView.buffer,
+                        byteOffset: readView.byteOffset + toCopy,
+                        byteLength: readView.byteLength - toCopy
+                    },
+                    bytesWritten: toSave
+                })
+            }
+
+            minReadLength -= readView.byteLength
         }
+
+        return filled
     }
 }

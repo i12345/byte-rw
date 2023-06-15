@@ -4,93 +4,226 @@ import { DataViewByteReaderAsync } from "./reader-async.js";
 
 
 export abstract class DataViewByteReaderAsyncChunked extends DataViewByteReaderAsync implements DataViewChunkedWorker {
-    protected chunks: DataViewChunk[] = []
-    protected currentChunk: DataViewChunk
+    protected pendingChunks: DataViewChunk[] = []
+    private _currentChunk: DataViewChunk
+
+    protected get currentChunk() {
+        return this._currentChunk
+    }
+
+    protected set currentChunk(currentChunk) {
+        this._currentChunk = currentChunk
+        this._dataview = currentChunk.view instanceof DataView ?
+            currentChunk.view :
+            new DataView(
+                currentChunk.view.buffer,
+                currentChunk.view.byteOffset,
+                currentChunk.view.byteLength
+            )
+    }
 
     protected get _bytesRemaining() {
+        let remaining = this._bytesRemaining_currentChunk
+        for (const pendingChunk of this.pendingChunks)
+            remaining += pendingChunk.bytesWritten
+        return remaining
+    }
+
+    protected get _bytesRemaining_currentChunk() {
         return this.currentChunk.bytesWritten - this._byteOffset
     }
 
     constructor(
         littleEndian?: boolean,
-        public readonly minChunkSize = 4096
+        public defaultChunkSize = 4096
     ) { 
-        super(new DataView(new ArrayBuffer(minChunkSize)), littleEndian)
+        super(new DataView(new ArrayBuffer(defaultChunkSize)), littleEndian)
         
-        this.currentChunk = {
-            buffer: this._dataview.buffer,
+        this._currentChunk = {
+            view: this._dataview,
             bytesWritten: 0
         }
-        this.chunks.push(this.currentChunk)
     }
 
-    protected abstract fillChunk(
-        chunk: DataViewChunk,
-        minReadLength: number
-    ): Promise<void>
+    /**
+     * Fills more data to be read into the current chunk and possibly pending
+     * chunks, adding more pending chunk(s) if needed
+     * 
+     * @param minReadLength the minimum number of bytes to read into the
+     * current and/or pending chunks
+     * @returns the number of bytes that were actually filled
+     */
+    protected abstract fill(minReadLength: number): Promise<number>
 
-    protected newChunkWithFreeSpace(space: number) {
-        const oldChunk = this.chunks[this.chunks.length - 1]
-        const oldChunk_lastRead = this._byteOffset
-        const oldChunk_bytesRemainingToRead = this._bytesRemaining
-        
-        const newChunk_size = Math.max(this.minChunkSize, space + oldChunk_bytesRemainingToRead)
-        const newChunk_buffer = new ArrayBuffer(newChunk_size)
-        
-        copy(
-            {
-                buffer: oldChunk.buffer,
-                byteOffset: oldChunk_lastRead,
-                byteLength: oldChunk_bytesRemainingToRead
-            },
-            {
-                buffer: newChunk_buffer,
+    protected pendChunk(chunk?: DataViewChunk) {
+        chunk ??= {
+            view: {
+                buffer: new ArrayBuffer(this.defaultChunkSize),
                 byteOffset: 0,
-                byteLength: oldChunk_bytesRemainingToRead
-            }
-        )
-
-        const newChunk: DataViewChunk = {
-            buffer: newChunk_buffer,
-            bytesWritten: oldChunk_bytesRemainingToRead
+                byteLength: this.defaultChunkSize
+            },
+            bytesWritten: 0
         }
-        this.chunks.push(newChunk)
-        this.currentChunk = newChunk
+        this.pendingChunks.push(chunk)
 
-        this._dataview = new DataView(newChunk.buffer)
-        this._byteOffset = 0
+        return chunk
     }
 
-    protected async ensureAvailable(bytes: number): Promise<void> {
-        if (bytes > this._bytesRemaining) {
-            if ((this.currentChunk.buffer.byteLength - this._byteOffset) < bytes)
-                this.newChunkWithFreeSpace(bytes)
-            await this.fillChunk(this.currentChunk, bytes)
-        }
-    }
-
-    async getBytes(buffer: ArrayBufferView): Promise<void> {
-        let read = this._byteOffset
-
-        while (read < buffer.byteLength) {
-            const toRead = Math.min(buffer.byteLength - read, this.minChunkSize)
-            await this.ensureAvailable(toRead)
+    /**
+     * Attempts to ensure that a specified number of bytes are available in the
+     * current chunk.
+     * 
+     * @param bytes the number of bytes to fill (total bytesWritten should
+     * increase by this amount at least)
+     * @returns the number of bytes at least made available in the current
+     * chunk, up to the requested number of bytes
+     */
+    protected async tryEnsureAvailable(bytes: number): Promise<number> {
+        if (bytes <= this._bytesRemaining_currentChunk)
+            return bytes
+        
+        function resizeCurrentChunk(this: DataViewByteReaderAsyncChunked, size: number) {
+            const currentChunk_length = this._bytesRemaining_currentChunk
+            if (currentChunk_length >= size)
+                return size
             
+            const tmpChunk_buffer = new ArrayBuffer(size)
+            let tmpChunk_bytesWritten = 0
+
             copy(
                 {
-                    buffer: this.currentChunk.buffer,
-                    byteOffset: this._byteOffset,
-                    byteLength: toRead
+                    buffer: this.currentChunk.view.buffer,
+                    byteOffset: this.currentChunk.view.byteOffset + this._byteOffset,
+                    byteLength: currentChunk_length
                 },
                 {
-                    buffer: buffer.buffer,
-                    byteOffset: buffer.byteOffset + read,
-                    byteLength: toRead
+                    buffer: tmpChunk_buffer,
+                    byteOffset: 0,
+                    byteLength: currentChunk_length
+                }
+            )
+            tmpChunk_bytesWritten += currentChunk_length
+
+            while (tmpChunk_bytesWritten < size) {
+                const pendingChunk = this.pendingChunks.shift()
+                
+                if (!pendingChunk)
+                    break
+                
+                const toCopy = Math.min(pendingChunk.bytesWritten, size - tmpChunk_bytesWritten)
+
+                copy(
+                    {
+                        buffer: pendingChunk.view.buffer,
+                        byteOffset: pendingChunk.view.byteOffset,
+                        byteLength: toCopy
+                    },
+                    {
+                        buffer: tmpChunk_buffer,
+                        byteOffset: tmpChunk_bytesWritten,
+                        byteLength: toCopy
+                    }
+                )
+
+                if (toCopy < pendingChunk.bytesWritten) {
+                    this.pendingChunks.unshift({
+                        view: {
+                            buffer: pendingChunk.view.buffer,
+                            byteOffset: pendingChunk.view.byteOffset + toCopy,
+                            byteLength: pendingChunk.view.byteLength + toCopy
+                        },
+                        bytesWritten: pendingChunk.bytesWritten + toCopy,
+                    })
+                }
+
+                tmpChunk_bytesWritten += toCopy
+            }
+
+            this.currentChunk = {
+                view: {
+                    buffer: tmpChunk_buffer,
+                    byteOffset: 0,
+                    byteLength: size
+                },
+                bytesWritten: tmpChunk_bytesWritten
+            }
+            this._byteOffset = 0
+
+            return tmpChunk_bytesWritten
+        }
+
+        if (this._bytesRemaining_currentChunk === 0) {
+            const pendingChunk = this.pendingChunks.shift()
+            if (pendingChunk) {
+                if (pendingChunk.bytesWritten < bytes)
+                    this.pendingChunks.unshift(pendingChunk)
+                else {
+                    this.currentChunk = pendingChunk
+                    this._byteOffset = 0
+                    return bytes
+                }
+            }
+            
+            await this.fill(bytes - this._bytesRemaining)
+            return resizeCurrentChunk.call(this, bytes)
+        }
+        else {
+            const toFill = bytes - this._bytesRemaining
+            await this.fill(toFill)
+            return resizeCurrentChunk.call(this, bytes)
+        }
+    }
+
+    async tryGetBytes(view: ArrayBufferView): Promise<number> {
+        let read = 0
+
+        function copyFromCurrentChunk(this: DataViewByteReaderAsyncChunked) {
+            const toCopy_remaining = view.byteLength - read
+            const toCopy = Math.min(this._bytesRemaining_currentChunk, toCopy_remaining)
+
+            copy(
+                {
+                    buffer: this.currentChunk.view.buffer,
+                    byteOffset: this.currentChunk.view.byteOffset + this._byteOffset,
+                    byteLength: toCopy
+                },
+                {
+                    buffer: view.buffer,
+                    byteOffset: view.byteOffset,
+                    byteLength: toCopy
                 }
             )
 
-            read += toRead
-            this._byteOffset += toRead
+            read += toCopy
+            this._byteOffset += toCopy
         }
+
+        if (this._bytesRemaining_currentChunk > 0) 
+            copyFromCurrentChunk.call(this)
+
+        while (read < view.byteLength &&
+            this.pendingChunks.length > 0) {
+            this.currentChunk = this.pendingChunks.shift()!
+            this._byteOffset = 0
+            copyFromCurrentChunk.call(this)
+        }
+
+        if (read < view.byteLength) {
+            this.currentChunk = {
+                view,
+                bytesWritten: read
+            }
+            
+            const toFill = view.byteLength - read
+            const filled = await this.fill(toFill)
+            read += Math.min(toFill, filled)
+
+            if (this.pendingChunks.length === 0)
+                this.pendChunk()
+            this.currentChunk = this.pendingChunks.shift()!
+            this._byteOffset = 0
+        }
+
+        return read
     }
 }

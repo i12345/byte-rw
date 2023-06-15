@@ -1,8 +1,8 @@
 export interface DataViewChunk {
-    buffer: ArrayBuffer
+    view: ArrayBufferView
     bytesWritten: number
 }
 
 export interface DataViewChunkedWorker {
-    minChunkSize: number
+    defaultChunkSize: number
 }

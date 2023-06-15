@@ -1,5 +1,10 @@
 export interface ByteReader {
     /**
+     * Whether all underlying data has been read or not
+     */
+    isComplete(): boolean
+
+    /**
      * If false, a big-endian value should be read.
      * 
      * @default true
@@ -47,9 +52,18 @@ export interface ByteReader {
     getUint32(): number
 
     /**
+     * Attempts to read into the given {@link ArrayBufferView}.
+     *
+     * @param view the view to read into
+     * @returns the number of bytes that were actually read
+     */
+    tryGetBytes(view: ArrayBufferView): number
+
+    /**
      * Reads into the given {@link ArrayBufferView}.
      *
-     * @param buffer the buffer to read into
+     * @param view the view to read into
+     * @throws error if the number of bytes requested could not be read
      */
-    getBytes(buffer: ArrayBufferView): void
+    getBytes(view: ArrayBufferView): void
 }
