@@ -16,11 +16,11 @@ writeData(writer_stream)
 
 function writeData(writer: ByteWriter) {
     const endianness = writer.littleEndian
-    writer.setUint16(0xABCD)
-    writer.setUint16(0x1234)
+    writer.writeUint16(0xABCD)
+    writer.writeUint16(0x1234)
 
     writer.littleEndian = false
-    writer.setUint32(0xCC0011FF)
+    writer.writeUint32(0xCC0011FF)
 
     writer.littleEndian = endianness
 }

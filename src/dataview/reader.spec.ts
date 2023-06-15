@@ -15,7 +15,7 @@ describe("DataViewByteReader", () => {
             float32[i] = data[i]
         
         for (let i = 0; i < data.length; i++) {
-            const read = reader.getFloat32()
+            const read = reader.readFloat32()
             assert.equal(read, data[i])
         }
     })
@@ -29,11 +29,11 @@ describe("DataViewByteReader", () => {
         
         const writer = new DataViewByteWriter(new DataView(buffer), littleEndian)
         for (let i = 0; i < uint32s.length; i++)
-            writer.setUint32(uint32s[i])
+            writer.writeUint32(uint32s[i])
 
         const reader = new DataViewByteReader(new DataView(buffer), littleEndian)
         for (let i = 0; i < uint16s.length; i++) {
-            const read = reader.getUint16()
+            const read = reader.readUint16()
             assert.equal(read, uint16s[i])
         }
     })
@@ -47,11 +47,11 @@ describe("DataViewByteReader", () => {
         
         const writer = new DataViewByteWriter(new DataView(buffer), littleEndian)
         for (let i = 0; i < uint32s.length; i++)
-            writer.setUint32(uint32s[i])
+            writer.writeUint32(uint32s[i])
 
         const reader = new DataViewByteReader(new DataView(buffer), littleEndian)
         for (let i = 0; i < uint16s.length; i++) {
-            const read = reader.getUint16()
+            const read = reader.readUint16()
             assert.equal(read, uint16s[i])
         }
     })

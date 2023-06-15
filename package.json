@@ -1,6 +1,6 @@
 {
   "name": "byte-rw",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Byte reader/writer for buffers and streams in typescript/javascript",
   "types": "dist/types/index.d.ts",
   "main": "dist/index.js",

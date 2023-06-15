@@ -1,5 +1,5 @@
 import { ByteReaderAsync } from "../interfaces/index.js"
-import { copy } from "../utils/copy.js"
+import { copy, textDecoder } from "../utils/index.js"
 
 export class DataViewByteReaderAsync implements ByteReaderAsync {
     protected _dataview: DataView
@@ -62,7 +62,7 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
     /**
      * Gets the next Float32 value
      */
-    async getFloat32(): Promise<number> {
+    async readFloat32(): Promise<number> {
         const bytes = 4
         await this.ensureAvailable(bytes)
         const value = this._dataview.getFloat32(this._byteOffset, this.littleEndian)
@@ -73,7 +73,7 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
     /**
      * Gets the next Float64 value
      */
-    async getFloat64(): Promise<number> {
+    async readFloat64(): Promise<number> {
         const bytes = 8
         await this.ensureAvailable(bytes)
         const value = this._dataview.getFloat64(this._byteOffset, this.littleEndian)
@@ -84,7 +84,7 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
     /**
      * Gets the next Int8 value
      */
-    async getInt8(): Promise<number> {
+    async readInt8(): Promise<number> {
         const bytes = 1
         await this.ensureAvailable(bytes)
         const value = this._dataview.getInt8(this._byteOffset)
@@ -95,7 +95,7 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
     /**
      * Gets the next Int16 value
      */
-    async getInt16(): Promise<number> {
+    async readInt16(): Promise<number> {
         const bytes = 2
         await this.ensureAvailable(bytes)
         const value = this._dataview.getInt16(this._byteOffset, this.littleEndian)
@@ -106,7 +106,7 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
     /**
      * Gets the next Int32 value
      */
-    async getInt32(): Promise<number> {
+    async readInt32(): Promise<number> {
         const bytes = 4
         await this.ensureAvailable(bytes)
         const value = this._dataview.getInt32(this._byteOffset, this.littleEndian)
@@ -117,7 +117,7 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
     /**
      * Gets the next Uint8 value
      */
-    async getUint8(): Promise<number> {
+    async readUint8(): Promise<number> {
         const bytes = 1
         await this.ensureAvailable(bytes)
         const value = this._dataview.getUint8(this._byteOffset)
@@ -128,7 +128,7 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
     /**
      * Gets the next Uint16 value
      */
-    async getUint16(): Promise<number> {
+    async readUint16(): Promise<number> {
         const bytes = 2
         await this.ensureAvailable(bytes)
         const value = this._dataview.getUint16(this._byteOffset, this.littleEndian)
@@ -139,7 +139,7 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
     /**
      * Gets the next Uint32 value
      */
-    async getUint32(): Promise<number> {
+    async readUint32(): Promise<number> {
         const bytes = 4
         await this.ensureAvailable(bytes)
         const value = this._dataview.getUint32(this._byteOffset, this.littleEndian)
@@ -147,7 +147,7 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
         return value
     }
 
-    async tryGetBytes(view: ArrayBufferView): Promise<number> {
+    async tryReadBytes(view: ArrayBufferView): Promise<number> {
         const bytes = view.byteLength
         const read = await this.tryEnsureAvailable(bytes)
 
@@ -173,9 +173,26 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
         return read
     }
 
-    async getBytes(view: ArrayBufferView): Promise<void> {
-        const read = await this.tryGetBytes(view)
+    async readBytes(view: ArrayBufferView): Promise<void> {
+        const read = await this.tryReadBytes(view)
         if (read !== view.byteLength)
             throw new Error(`Not all bytes could be read (${view.byteLength} bytes request, ${read} bytes read)`)
+    }
+
+    async getString(encoding?: string): Promise<string> {
+        const length = await this.readUint32()
+
+        await this.ensureAvailable(length)
+        
+        const available = this._dataview.byteLength - this._byteOffset
+        console.assert(available >= length)
+
+        const view = new DataView(
+            this._dataview.buffer,
+            this._dataview.byteOffset + this._byteOffset,
+            length
+        )
+
+        return textDecoder.decode(view)
     }
 }

@@ -13,12 +13,12 @@ describe("DataViewByteWriterChunkedDynamic", () => {
         
         const writer = new DataViewByteWriterChunkedDynamic(littleEndian, 4096)
         for (let i = 0; i < data.length; i++)
-            writer.setUint16(data[i])
+            writer.writeUint16(data[i])
         
         const combined = writer.combineChunks()
         const reader = new DataViewByteReader(new DataView(combined), littleEndian)
         for (let i = 0; i < data.length; i++) {
-            const read = reader.getUint16()
+            const read = reader.readUint16()
             if (read !== data[i])
                 console.log('!=')
             assert.equal(read, data[i])

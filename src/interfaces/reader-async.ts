@@ -14,42 +14,42 @@ export interface ByteReaderAsync {
     /**
      * Gets the next Float32 value
      */
-    getFloat32(): Promise<number>
+    readFloat32(): Promise<number>
 
     /**
      * Gets the next Float64 value
      */
-    getFloat64(): Promise<number>
+    readFloat64(): Promise<number>
 
     /**
      * Gets the next Int8 value
      */
-    getInt8(): Promise<number>
+    readInt8(): Promise<number>
 
     /**
      * Gets the next Int16 value
      */
-    getInt16(): Promise<number>
+    readInt16(): Promise<number>
 
     /**
      * Gets the next Int32 value
      */
-    getInt32(): Promise<number>
+    readInt32(): Promise<number>
 
     /**
      * Gets the next Uint8 value
      */
-    getUint8(): Promise<number>
+    readUint8(): Promise<number>
 
     /**
      * Gets the next Uint16 value
      */
-    getUint16(): Promise<number>
+    readUint16(): Promise<number>
 
     /**
      * Gets the next Uint32 value
      */
-    getUint32(): Promise<number>
+    readUint32(): Promise<number>
 
     /**
      * Attempts to read into the given {@link ArrayBufferView}.
@@ -57,7 +57,7 @@ export interface ByteReaderAsync {
      * @param view the view to read into
      * @returns the number of bytes that were actually read
      */
-    tryGetBytes(view: ArrayBufferView): Promise<number>
+    tryReadBytes(view: ArrayBufferView): Promise<number>
 
     /**
      * Reads into the given {@link ArrayBufferView}.
@@ -65,5 +65,10 @@ export interface ByteReaderAsync {
      * @param view the view to read into
      * @throws error if the number of bytes requested could not be read
      */
-    getBytes(view: ArrayBufferView): void
+    readBytes(view: ArrayBufferView): Promise<void>
+
+    /**
+     * Gets the next string using a prefix length
+     */
+    getString(): Promise<string>
 }

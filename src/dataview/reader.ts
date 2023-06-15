@@ -1,5 +1,5 @@
 import { ByteReader } from "../interfaces/index.js"
-import { copy } from "../utils/copy.js"
+import { copy, textDecoder } from "../utils/index.js"
 
 export class DataViewByteReader implements ByteReader {
     protected _dataview: DataView
@@ -60,7 +60,7 @@ export class DataViewByteReader implements ByteReader {
     /**
      * Gets the next Float32 value
      */
-    getFloat32(): number {
+    readFloat32(): number {
         const bytes = 4
         this.ensureAvailable(bytes)
         const value = this._dataview.getFloat32(this._byteOffset, this.littleEndian)
@@ -71,7 +71,7 @@ export class DataViewByteReader implements ByteReader {
     /**
      * Gets the next Float64 value
      */
-    getFloat64(): number {
+    readFloat64(): number {
         const bytes = 8
         this.ensureAvailable(bytes)
         const value = this._dataview.getFloat64(this._byteOffset, this.littleEndian)
@@ -82,7 +82,7 @@ export class DataViewByteReader implements ByteReader {
     /**
      * Gets the next Int8 value
      */
-    getInt8(): number {
+    readInt8(): number {
         const bytes = 1
         this.ensureAvailable(bytes)
         const value = this._dataview.getInt8(this._byteOffset)
@@ -93,7 +93,7 @@ export class DataViewByteReader implements ByteReader {
     /**
      * Gets the next Int16 value
      */
-    getInt16(): number {
+    readInt16(): number {
         const bytes = 2
         this.ensureAvailable(bytes)
         const value = this._dataview.getInt16(this._byteOffset, this.littleEndian)
@@ -104,7 +104,7 @@ export class DataViewByteReader implements ByteReader {
     /**
      * Gets the next Int32 value
      */
-    getInt32(): number {
+    readInt32(): number {
         const bytes = 4
         this.ensureAvailable(bytes)
         const value = this._dataview.getInt32(this._byteOffset, this.littleEndian)
@@ -115,7 +115,7 @@ export class DataViewByteReader implements ByteReader {
     /**
      * Gets the next Uint8 value
      */
-    getUint8(): number {
+    readUint8(): number {
         const bytes = 1
         this.ensureAvailable(bytes)
         const value = this._dataview.getUint8(this._byteOffset)
@@ -126,7 +126,7 @@ export class DataViewByteReader implements ByteReader {
     /**
      * Gets the next Uint16 value
      */
-    getUint16(): number {
+    readUint16(): number {
         const bytes = 2
         this.ensureAvailable(bytes)
         const value = this._dataview.getUint16(this._byteOffset, this.littleEndian)
@@ -137,7 +137,7 @@ export class DataViewByteReader implements ByteReader {
     /**
      * Gets the next Uint32 value
      */
-    getUint32(): number {
+    readUint32(): number {
         const bytes = 4
         this.ensureAvailable(bytes)
         const value = this._dataview.getUint32(this._byteOffset, this.littleEndian)
@@ -145,7 +145,7 @@ export class DataViewByteReader implements ByteReader {
         return value
     }
 
-    tryGetBytes(view: ArrayBufferView): number {
+    tryReadBytes(view: ArrayBufferView): number {
         const bytes = view.byteLength
         const read = this.tryEnsureAvailable(bytes)
 
@@ -172,9 +172,26 @@ export class DataViewByteReader implements ByteReader {
         return read
     }
 
-    getBytes(view: ArrayBufferView): void {
-        const read = this.tryGetBytes(view)
+    readBytes(view: ArrayBufferView): void {
+        const read = this.tryReadBytes(view)
         if (read !== view.byteLength)
             throw new Error(`Not all bytes could be read (${view.byteLength} bytes request, ${read} bytes read)`)
+    }
+
+    getString(): string {
+        const length = this.readUint32()
+
+        this.ensureAvailable(length)
+        
+        const available = this._dataview.byteLength - this._byteOffset
+        console.assert(available >= length)
+
+        const view = new DataView(
+            this._dataview.buffer,
+            this._dataview.byteOffset + this._byteOffset,
+            length
+        )
+
+        return textDecoder.decode(view)
     }
 }

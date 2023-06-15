@@ -1,5 +1,5 @@
 import { ByteWriterAsync } from "../index.js";
-import { copy } from "../utils/copy.js";
+import { copy, textEncoder } from "../utils/index.js";
 
 export class DataViewByteWriterAsync implements ByteWriterAsync {
     protected _dataview: DataView
@@ -64,63 +64,63 @@ export class DataViewByteWriterAsync implements ByteWriterAsync {
             throw new Error(`Not all bytes could be available (${bytes} bytes requested, ${read} bytes available)`)
     }
 
-    async setFloat32(value: number): Promise<void> {
+    async writeFloat32(value: number): Promise<void> {
         const bytes = 4
         await this.ensureAvailable(bytes)
         this._dataview.setFloat32(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    async setFloat64(value: number): Promise<void> {
+    async writeFloat64(value: number): Promise<void> {
         const bytes = 8
         await this.ensureAvailable(bytes)
         this._dataview.setFloat64(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    async setInt8(value: number): Promise<void> {
+    async writeInt8(value: number): Promise<void> {
         const bytes = 1
         await this.ensureAvailable(bytes)
         this._dataview.setInt8(this._byteOffset, value)
         this._byteOffset += bytes
     }
 
-    async setInt16(value: number): Promise<void> {
+    async writeInt16(value: number): Promise<void> {
         const bytes = 2
         await this.ensureAvailable(bytes)
         this._dataview.setInt16(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    async setInt32(value: number): Promise<void> {
+    async writeInt32(value: number): Promise<void> {
         const bytes = 4
         await this.ensureAvailable(bytes)
         this._dataview.setInt32(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    async setUint8(value: number): Promise<void> {
+    async writeUint8(value: number): Promise<void> {
         const bytes = 1
         await this.ensureAvailable(bytes)
         this._dataview.setUint8(this._byteOffset, value)
         this._byteOffset += bytes
     }
 
-    async setUint16(value: number): Promise<void> {
+    async writeUint16(value: number): Promise<void> {
         const bytes = 2
         await this.ensureAvailable(bytes)
         this._dataview.setUint16(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    async setUint32(value: number): Promise<void> {
+    async writeUint32(value: number): Promise<void> {
         const bytes = 4
         await this.ensureAvailable(bytes)
         this._dataview.setUint32(this._byteOffset, value, this.littleEndian)
         this._byteOffset += bytes
     }
 
-    async trySetBytes(view: ArrayBufferView): Promise<number> {
+    async tryWriteBytes(view: ArrayBufferView): Promise<number> {
         const bytes = view.byteLength
         const write = await this.tryEnsureAvailable(bytes)
 
@@ -147,9 +147,15 @@ export class DataViewByteWriterAsync implements ByteWriterAsync {
         return write
     }
 
-    async setBytes(view: ArrayBufferView): Promise<void> {
-        const written = await this.trySetBytes(view)
+    async writeBytes(view: ArrayBufferView): Promise<void> {
+        const written = await this.tryWriteBytes(view)
         if (written !== view.byteLength)
             throw new Error(`Not all bytes could be written (${view.byteLength} bytes requested, ${written} bytes written)`)
+    }
+
+    async setString(value: string): Promise<void> {
+        const encoded = textEncoder.encode(value)
+        await this.writeUint32(encoded.byteLength)
+        await this.writeBytes(encoded)
     }
 }

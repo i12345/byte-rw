@@ -14,42 +14,42 @@ export interface ByteReader {
     /**
      * Gets the next Float32 value
      */
-    getFloat32(): number
+    readFloat32(): number
 
     /**
      * Gets the next Float64 value
      */
-    getFloat64(): number
+    readFloat64(): number
 
     /**
      * Gets the next Int8 value
      */
-    getInt8(): number
+    readInt8(): number
 
     /**
      * Gets the next Int16 value
      */
-    getInt16(): number
+    readInt16(): number
 
     /**
      * Gets the next Int32 value
      */
-    getInt32(): number
+    readInt32(): number
 
     /**
      * Gets the next Uint8 value
      */
-    getUint8(): number
+    readUint8(): number
 
     /**
      * Gets the next Uint16 value
      */
-    getUint16(): number
+    readUint16(): number
 
     /**
      * Gets the next Uint32 value
      */
-    getUint32(): number
+    readUint32(): number
 
     /**
      * Attempts to read into the given {@link ArrayBufferView}.
@@ -57,7 +57,7 @@ export interface ByteReader {
      * @param view the view to read into
      * @returns the number of bytes that were actually read
      */
-    tryGetBytes(view: ArrayBufferView): number
+    tryReadBytes(view: ArrayBufferView): number
 
     /**
      * Reads into the given {@link ArrayBufferView}.
@@ -65,5 +65,10 @@ export interface ByteReader {
      * @param view the view to read into
      * @throws error if the number of bytes requested could not be read
      */
-    getBytes(view: ArrayBufferView): void
+    readBytes(view: ArrayBufferView): void
+
+    /**
+     * Gets the next string using a prefix length
+     */
+    getString(): string
 }

@@ -173,7 +173,7 @@ export abstract class DataViewByteReaderChunked extends DataViewByteReader imple
         }
     }
 
-    tryGetBytes(view: ArrayBufferView): number {
+    tryReadBytes(view: ArrayBufferView): number {
         let read = 0
 
         function copyFromCurrentChunk(this: DataViewByteReaderChunked) {

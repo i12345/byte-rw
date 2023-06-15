@@ -12,7 +12,7 @@ describe("StreamByteReader", () => {
         let read = ""
         let readBytes: number
         do {
-            readBytes = await reader.tryGetBytes(chars)
+            readBytes = await reader.tryReadBytes(chars)
             const decoded = new TextDecoder().decode(chars.slice(0, readBytes))
             read += decoded
             // console.log(`${read} bytes / ${decoded.length} chars:`)

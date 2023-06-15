@@ -174,7 +174,7 @@ export abstract class DataViewByteReaderAsyncChunked extends DataViewByteReaderA
         }
     }
 
-    async tryGetBytes(view: ArrayBufferView): Promise<number> {
+    async tryReadBytes(view: ArrayBufferView): Promise<number> {
         let read = 0
 
         function copyFromCurrentChunk(this: DataViewByteReaderAsyncChunked) {
