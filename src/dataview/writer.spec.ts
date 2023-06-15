@@ -10,9 +10,9 @@ describe("DataViewByteWriter", () => {
         const reader = new DataViewByteReader(data)
 
         const written = "Hello world!"
-        writer.setString(written)
+        writer.writeString(written)
         
-        const read = reader.getString()
+        const read = reader.readString()
         assert.equal(written, read)
     })
 })

@@ -179,7 +179,7 @@ export class DataViewByteReaderAsync implements ByteReaderAsync {
             throw new Error(`Not all bytes could be read (${view.byteLength} bytes request, ${read} bytes read)`)
     }
 
-    async getString(encoding?: string): Promise<string> {
+    async readString(encoding?: string): Promise<string> {
         const length = await this.readUint32()
 
         await this.ensureAvailable(length)

@@ -70,5 +70,5 @@ export interface ByteReaderAsync {
     /**
      * Gets the next string using a prefix length
      */
-    getString(): Promise<string>
+    readString(): Promise<string>
 }

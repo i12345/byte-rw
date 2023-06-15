@@ -84,5 +84,5 @@ export interface ByteWriterAsync {
      * Stores a string using a prefix length
      * @param value the value to set
      */
-    setString(value: string): Promise<void>
+    writeString(value: string): Promise<void>
 }

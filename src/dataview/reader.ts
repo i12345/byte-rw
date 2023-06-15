@@ -178,7 +178,7 @@ export class DataViewByteReader implements ByteReader {
             throw new Error(`Not all bytes could be read (${view.byteLength} bytes request, ${read} bytes read)`)
     }
 
-    getString(): string {
+    readString(): string {
         const length = this.readUint32()
 
         this.ensureAvailable(length)

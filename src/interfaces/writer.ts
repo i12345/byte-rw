@@ -84,5 +84,5 @@ export interface ByteWriter {
      * Stores a string using a prefix length
      * @param value the value to set
      */
-    setString(value: string): void
+    writeString(value: string): void
 }

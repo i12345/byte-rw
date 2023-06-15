@@ -153,7 +153,7 @@ export class DataViewByteWriterAsync implements ByteWriterAsync {
             throw new Error(`Not all bytes could be written (${view.byteLength} bytes requested, ${written} bytes written)`)
     }
 
-    async setString(value: string): Promise<void> {
+    async writeString(value: string): Promise<void> {
         const encoded = textEncoder.encode(value)
         await this.writeUint32(encoded.byteLength)
         await this.writeBytes(encoded)

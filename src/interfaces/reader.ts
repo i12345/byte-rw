@@ -70,5 +70,5 @@ export interface ByteReader {
     /**
      * Gets the next string using a prefix length
      */
-    getString(): string
+    readString(): string
 }

@@ -153,7 +153,7 @@ export class DataViewByteWriter implements ByteWriter {
             throw new Error(`Not all bytes could be written (${view.byteLength} bytes requested, ${written} bytes written)`)
     }
 
-    setString(value: string): void {
+    writeString(value: string): void {
         const encoded = textEncoder.encode(value)
         this.writeUint32(encoded.byteLength)
         this.writeBytes(encoded)
