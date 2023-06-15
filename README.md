@@ -1,4 +1,4 @@
-# dataview-stream
+# byte-rw
 
 Reading and writing at the byte level is easy with `byte-rw`. It exposes two interfaces like the [DataView](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView) object but is adaptable for streams or other implementations.
 
