@@ -192,6 +192,8 @@ export class DataViewByteReader implements ByteReader {
             length
         )
 
+        this._byteOffset += length
+
         return textDecoder.decode(view)
     }
 }

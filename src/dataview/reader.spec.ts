@@ -55,4 +55,22 @@ describe("DataViewByteReader", () => {
             assert.equal(read, uint16s[i])
         }
     })
+
+    it("should read heterogeneous data", () => {
+        const dataview = new DataView(new ArrayBuffer(64))
+        const writer = new DataViewByteWriter(dataview)
+        const reader = new DataViewByteReader(dataview)
+
+        writer.writeUint16(0xABCD)
+        assert.equal(reader.readUint16(), 0xABCD)
+
+        writer.writeUint32(0xcc33ffff)
+        assert.equal(reader.readUint32(), 0xcc33ffff)
+
+        writer.writeString("Encoded string")
+        assert.equal(reader.readString(), "Encoded string")
+
+        writer.writeString("Another string")
+        assert.equal(reader.readString(), "Another string")
+    })
 })
